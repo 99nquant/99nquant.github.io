@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Registo público de todos os sinais 99N: entrada, saída e resultado, encadeado por hash.">
+<meta property="og:title" content="99N · Registo público">
+<meta property="og:description" content="Todos os sinais. Todas as perdas.">
+<meta name="theme-color" content="#070d18">
+<title>99N Registo Público</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: uma coluna estreita tipo "extrato" — cabeçalho, 4 números, tabela de sinais, prova de integridade. Visual único escuro da marca 99N. */
+:root{
+  --bg:#070d18; --panel:#0c1626; --line:#1e3a5f; --fg:#e6f2fa; --muted:#7890a5; --soft:#9fb3c8;
+  --win:#4ade80; --loss:#f87171; --info:#38bdf8; --warn:#fbbf24;
+  --display:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:14px;line-height:1.55;
+  background-image:radial-gradient(900px 500px at 100% -10%,rgba(56,189,248,.10),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(74,222,128,.06),transparent 60%);
+  background-attachment:fixed;min-height:100%}
+.wrap{max-width:860px;margin:0 auto;padding-block:40px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:10px}
+.brand{font-weight:700;font-size:22px;letter-spacing:.02em}
+.tag{color:var(--win);font-weight:700;font-size:12px;letter-spacing:.28em;text-transform:uppercase}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1.05;margin:6px 0 0;letter-spacing:-.02em;text-wrap:balance}
+.lead{color:var(--soft);max-width:62ch;margin:0}
+.meta{color:var(--muted);font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.kpi{background:var(--panel);padding:18px 18px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .k{color:var(--muted);font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.kpi .v{font-family:var(--display);font-weight:700;font-size:clamp(22px,4vw,30px);font-variant-numeric:tabular-nums}
+.kpi .s{color:var(--muted);font-size:12px}
+.pos{color:var(--win)} .neg{color:var(--loss)} .neu{color:var(--muted)}
+section{display:flex;flex-direction:column;gap:12px}
+h2{font-family:var(--display);font-size:18px;margin:0;font-weight:700}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button{font:inherit;font-size:12px;color:var(--soft);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{color:var(--bg);background:var(--fg);border-color:var(--fg)}
+.filters button:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:rgba(12,22,38,.75)}
+table{width:100%;border-collapse:collapse;min-width:640px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid rgba(30,58,95,.6)}
+th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+.long{color:var(--win)} .short{color:var(--loss)}
+.open{color:var(--info)} .aviso{color:var(--warn)}
+.empty{padding:22px 16px;color:var(--muted);text-align:center}
+.proof{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--panel);display:flex;flex-direction:column;gap:8px}
+.hash{font-size:12px;color:var(--soft);word-break:break-all}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:22px}
+.cta a{font-family:var(--display);font-weight:700;color:var(--bg);background:var(--win);text-decoration:none;padding:12px 20px;border-radius:12px}
+.cta a:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
+.legal{color:var(--muted);font-size:11.5px;max-width:70ch;margin:0}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.kpi .v{transition:color .3s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">99N</div>
+    <div class="tag">Registo público</div>
+    <h1>Todos os sinais. Todas as perdas.</h1>
+    <p class="lead">Cada sinal publicado no canal 99N entra aqui, com entrada, saída e resultado. Nada é apagado: o registo é encadeado por hash SHA-256 e o hash é publicado todos os dias no canal.</p>
+    <div class="meta" id="meta">A carregar…</div>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <h2>Sinais</h2>
+    <div class="filters" id="filters" role="group" aria-label="Filtrar por mercado"></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Sinal</th><th>Data (ZH)</th><th>Mercado</th><th>Lado</th><th class="r">Entrada</th><th class="r">Saída</th><th class="r">Resultado</th><th>Estado</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="proof">
+    <h2>Prova de integridade</h2>
+    <div class="meta">Último hash do registo</div>
+    <div class="hash" id="hash"></div>
+    <p class="legal">Cada linha do registo inclui o hash da linha anterior. Alterar um resultado antigo quebraria a cadeia, e o hash diário publicado no canal deixaria de bater certo.</p>
+  </section>
+
+  <div class="cta">
+    <div class="meta">Os sinais saem em tempo real no canal privado do Telegram.</div>
+    <a href="https://whop.com/99n/99n-pro" target="_blank" rel="noopener">Lista de espera</a>
+  </div>
+  <p class="legal">Registo de todos os sinais publicados no canal desde 19.10.2026. Não inclui resultados de backtest. Resultados em % do preço de entrada, sem custos de corretagem. Conteúdo informativo, não constitui aconselhamento financeiro. Resultados passados não garantem resultados futuros. Negociar com alavancagem envolve risco elevado de perda.</p>
+</div>
+
+<!-- DADOS-INICIO -->
+<script id="dados" type="application/json">
+{
+  "atualizado": "2026-10-19T18:47:00+02:00",
+  "inicio": "2026-10-19",
+  "hash": "5908b5f51e6bd848513c99b6ac56e25c854bc4766d81ffa61b4df9de6bccfad6",
+  "sinais": [
+    {"id": "#0001", "utc": "2026-10-19T16:00:00Z", "mercado": "NASDAQ · Futuros", "lado": "LONG", "entrada": "29 933,50", "saida": "29 856,50", "pct": -0.257, "estado": "FECHADO"}
+  ]
+}
+</script>
+<!-- DADOS-FIM -->
+
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById('dados').textContent);
+  var pt = function(x, d){ return x.toLocaleString('pt-PT',{minimumFractionDigits:d,maximumFractionDigits:d}); };
+  var pc = function(x){ return (x>=0?'+':'') + pt(x,2) + ' %'; };
+  var zh = function(iso){ var t=new Date(iso); return t.toLocaleString('pt-PT',{timeZone:'Europe/Zurich',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',', ' ·'); };
+  var S = D.sinais || [];
+  var fech = S.filter(function(s){ return s.estado==='FECHADO' && typeof s.pct==='number'; });
+  var wins = fech.filter(function(s){ return s.pct>0; }).length;
+  var soma = fech.reduce(function(a,s){ return a+s.pct; },0);
+  var abertos = S.filter(function(s){ return s.estado==='ABERTO'; }).length;
+  var k = [
+    ['Sinais', String(S.filter(function(s){return s.estado!=='AVISO';}).length), abertos ? abertos+' em aberto' : 'nenhum em aberto', ''],
+    ['Fechados', String(fech.length), fech.length ? wins+' wins · '+(fech.length-wins)+' losses' : 'ainda nenhum', ''],
+    ['Resultado', fech.length ? pc(soma) : '—', 'soma dos %', fech.length ? (soma>=0?'pos':'neg') : 'neu'],
+    ['Acerto', fech.length ? Math.round(wins/fech.length*100)+' %' : '—', 'dos fechados', fech.length ? '' : 'neu']
+  ];
+  document.getElementById('kpis').innerHTML = k.map(function(x){ return '<div class="kpi"><div class="k">'+x[0]+'</div><div class="v '+x[3]+'">'+x[1]+'</div><div class="s">'+x[2]+'</div></div>'; }).join('');
+  document.getElementById('meta').textContent = 'Desde ' + D.inicio.split('-').reverse().join('.') + ' · atualizado ' + zh(D.atualizado);
+  document.getElementById('hash').textContent = D.hash || 'Publicado diariamente às 22:30 no canal (primeiro hash após o fecho de hoje).';
+  var mercados = ['Todos'].concat(Array.from(new Set(S.map(function(s){return s.mercado;}))));
+  var atual = 'Todos';
+  function render(){
+    var lista = S.filter(function(s){ return atual==='Todos' || s.mercado===atual; }).slice().reverse();
+    var tb = document.getElementById('rows');
+    if(!lista.length){ tb.innerHTML = '<tr><td colspan="8" class="empty">Ainda sem sinais neste mercado.</td></tr>'; return; }
+    tb.innerHTML = lista.map(function(s){
+      var lado = '<span class="pill '+(s.lado==='LONG'?'long':'short')+'">'+s.lado+'</span>';
+      var res = typeof s.pct==='number' ? '<span class="'+(s.pct>=0?'pos':'neg')+'">'+pc(s.pct)+'</span>' : '<span class="neu">—</span>';
+      var est = s.estado==='ABERTO' ? '<span class="open">● aberto</span>' : s.estado==='AVISO' ? '<span class="aviso">sem entrada</span>' : '<span class="neu">fechado</span>';
+      return '<tr><td>'+s.id+'</td><td>'+zh(s.utc)+'</td><td>'+s.mercado+'</td><td>'+lado+'</td><td class="r">'+(s.entrada||'—')+'</td><td class="r">'+(s.saida||'—')+'</td><td class="r">'+res+'</td><td>'+est+'</td></tr>';
+    }).join('');
+  }
+  var f = document.getElementById('filters');
+  f.innerHTML = mercados.map(function(m){ return '<button type="button" aria-pressed="'+(m===atual)+'">'+m+'</button>'; }).join('');
+  f.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; atual=b.textContent; Array.prototype.forEach.call(f.children,function(x){x.setAttribute('aria-pressed', String(x===b));}); render(); });
+  render();
+})();
+</script>
+</body>
+</html>
